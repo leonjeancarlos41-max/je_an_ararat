@@ -1,0 +1,119 @@
+<!-- client/index.html -->
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Cliente - Proyecto CICD</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    body { font-family: Arial, sans-serif; margin: 24px; max-width: 900px; }
+    header { margin-bottom: 16px; }
+    .card { border:1px solid #ddd; padding:12px; margin-bottom:12px; border-radius:6px; }
+    label { display:block; margin-top:8px; }
+    input, textarea { width:100%; padding:8px; margin-top:4px; }
+    button { margin-top:8px; padding:8px 12px; }
+    ul { padding-left: 20px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Cliente - Gestor de Tareas (Demo)</h1>
+    <p>Consume la API en <code>/api</code>. Ejemplos: listar tareas, crear tareas, listar usuarios.</p>
+  </header>
+
+  <section class="card">
+    <h2>Crear tarea</h2>
+    <label>Título <input id="task-title" /></label>
+    <label>Descripción <textarea id="task-desc"></textarea></label>
+    <label>Propietario (user id opcional) <input id="task-owner" /></label>
+    <button id="create-task">Crear tarea</button>
+    <div id="create-result"></div>
+  </section>
+
+  <section class="card">
+    <h2>Tareas</h2>
+    <button id="refresh-tasks">Refrescar tareas</button>
+    <ul id="tasks-list"></ul>
+  </section>
+
+  <section class="card">
+    <h2>Usuarios</h2>
+    <button id="refresh-users">Refrescar usuarios</button>
+    <ul id="users-list"></ul>
+    <h3>Crear usuario</h3>
+    <label>Nombre <input id="user-name" /></label>
+    <label>Email <input id="user-email" /></label>
+    <button id="create-user">Crear usuario</button>
+  </section>
+
+<script>
+const API_BASE = '/api';
+
+async function listTasks() {
+  const res = await fetch(API_BASE + '/tasks');
+  const data = await res.json();
+  const el = document.getElementById('tasks-list');
+  el.innerHTML = '';
+  data.forEach(t => {
+    const li = document.createElement('li');
+    li.textContent = `${t.title} (${t.id.slice(0,6)}) - completed: ${t.completed} - owner: ${t.owner_id || '—'}`;
+    el.appendChild(li);
+  });
+}
+
+async function listUsers() {
+  const res = await fetch(API_BASE + '/users');
+  const data = await res.json();
+  const el = document.getElementById('users-list');
+  el.innerHTML = '';
+  data.forEach(u => {
+    const li = document.createElement('li');
+    li.textContent = `${u.name} — ${u.email} (${u.id.slice(0,6)})`;
+    el.appendChild(li);
+  });
+}
+
+document.getElementById('refresh-tasks').addEventListener('click', listTasks);
+document.getElementById('refresh-users').addEventListener('click', listUsers);
+
+document.getElementById('create-task').addEventListener('click', async () => {
+  const title = document.getElementById('task-title').value;
+  const description = document.getElementById('task-desc').value;
+  const owner_id = document.getElementById('task-owner').value || undefined;
+  const res = await fetch(API_BASE + '/tasks', {
+    method: 'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({title, description, owner_id})
+  });
+  const el = document.getElementById('create-result');
+  if (res.ok) {
+    const data = await res.json();
+    el.textContent = 'Tarea creada: ' + data.id;
+    listTasks();
+  } else {
+    const err = await res.json();
+    el.textContent = 'Error: ' + (err.detail || res.statusText);
+  }
+});
+
+document.getElementById('create-user').addEventListener('click', async () => {
+  const name = document.getElementById('user-name').value;
+  const email = document.getElementById('user-email').value;
+  const res = await fetch(API_BASE + '/users', {
+    method: 'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({name, email})
+  });
+  if (res.ok) {
+    await listUsers();
+  } else {
+    alert('Error al crear usuario');
+  }
+});
+
+// load on open
+listTasks();
+listUsers();
+</script>
+</body>
+</html>
